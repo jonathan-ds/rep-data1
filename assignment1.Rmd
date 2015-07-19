@@ -71,3 +71,15 @@ The mean and median of this would then be:
 mean(steps_per_day[,2])
 median(steps_per_day[,2])
 ```
+
+Now a comparison between weekends and weekdays.
+```{r}
+raw_data <- cbind(raw_data,sapply(as.POSIXct(raw_data[,2]),weekdays))
+wkdays <- raw_data[raw_data[,4]!="Sunday"&raw_data[,4]!="Saturday",]
+wkends <- raw_data[raw_data[,4]=="Sunday"|raw_data[,4]=="Saturday",]
+time_series_wkend <- aggregate(wkends$steps,by=list(interval=wkends$interval),FUN=mean)
+time_series_wkday <- aggregate(wkdays$steps,by=list(interval=wkdays$interval),FUN=mean)
+par(mfcol=c(2,1))
+plot(time_series_wkend,type="l",main="Weekends",ylab="Average Steps")
+plot(time_series_wkday,type="l",main="Weekdays",ylab="Average Steps")
+```
