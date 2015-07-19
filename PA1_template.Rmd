@@ -1,25 +1,85 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Assignment 1"
+author: "Jonathan Graham"
+date: "Sunday, July 19, 2015"
+output: html_document
 ---
+## Introduction
 
+It is now possible to collect a large amount of data about personal
+movement using activity monitoring devices such as a
+[Fitbit](http://www.fitbit.com), [Nike
+Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or [Jawbone Up](https://jawbone.com/up). These type of devices are part of the "quantified self" movement -- a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
 
-## Loading and preprocessing the data
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
 
+The data resides in a file called activity.csv in a folder called activity.  It can be loaded by the following code:
 
+```{r}
+raw_data <- read.csv(file.path("activity","activity.csv"))
+```
+Some of our manipulations will require NA's to be removed.  So we create another dataset for those purposes.
+```{r}
+tidy_data <- raw_data[!is.na(raw_data),]
+```
+Now we need to determine the steps taken per day.
+```{r}
+steps_per_day <- aggregate(tidy_data$steps,by=list(date=tidy_data$date),FUN=sum)
+```
+We can now show a histogram of this data:
+```{r}
+hist(steps_per_day[,2],main="Total steps per day",xlab="steps per day")
+```
 
-## What is mean total number of steps taken per day?
+The mean and median of this data is found this way:
+```{r}
+mean(steps_per_day[,2])
+median(steps_per_day[,2])
+```
 
+Another interesting view of this data would be a time series plot. This would show the number of steps for each 5 minute interval measured averaged over all days measured.  The data can be aggrigated like this
 
+:
+```{r}
+time_series <- aggregate(tidy_data$steps,by=list(interval=tidy_data$interval),FUN=mean)
+```
+And then easily plotted:
+```{r}
+plot(time_series,type="l",ylab="Average Steps")
+```
 
-## What is the average daily activity pattern?
+We can even extract numbers of interest like the 5 minute interval with the largest number of steps.
+```{r}
+time_series[which.max(time_series[,2]),]
+```
+One problem which might bias our results would be the number of missing values.  We can find out how many this way:
+```{r}
+sum(is.na(raw_data))
+```
+One strategy for fixing this potential source of bias would be to replace each NA with the average for the interval it occurs in.  This process is called "imputing".  We can take this data from our time_series dataset.
+```{r}
+raw_data[is.na(raw_data[,1]),1] <- sapply(raw_data[is.na(raw_data[,1]),3],function(i) time_series[time_series$interval==i,2])
+```
+A histogram of this new dataset would look like:
+```{r}
+steps_per_day <- aggregate(raw_data$steps,by=list(date=raw_data$date),FUN=sum)
+hist(steps_per_day[,2],main="Total steps per day (with imputed data)",xlab="steps per day")
+```
 
+The mean and median of this would then be:
+```{r}
+mean(steps_per_day[,2])
+median(steps_per_day[,2])
+```
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+Now a comparison between weekends and weekdays.
+```{r}
+raw_data <- cbind(raw_data,sapply(as.POSIXct(raw_data[,2]),weekdays))
+wkdays <- raw_data[raw_data[,4]!="Sunday"&raw_data[,4]!="Saturday",]
+wkends <- raw_data[raw_data[,4]=="Sunday"|raw_data[,4]=="Saturday",]
+time_series_wkend <- aggregate(wkends$steps,by=list(interval=wkends$interval),FUN=mean)
+time_series_wkday <- aggregate(wkdays$steps,by=list(interval=wkdays$interval),FUN=mean)
+par(mfcol=c(2,1))
+plot(time_series_wkend,type="l",main="Weekends",ylab="Average Steps")
+plot(time_series_wkday,type="l",main="Weekdays",ylab="Average Steps")
+```
